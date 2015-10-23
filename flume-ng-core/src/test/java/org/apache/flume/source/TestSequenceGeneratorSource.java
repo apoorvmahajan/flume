@@ -64,7 +64,6 @@ public class TestSequenceGeneratorSource {
     rcs.setChannels(channels);
 
     source.setChannelProcessor(new ChannelProcessor(rcs));
-    source.start();
 
     for (long i = 0; i < 100; i++) {
       source.process();

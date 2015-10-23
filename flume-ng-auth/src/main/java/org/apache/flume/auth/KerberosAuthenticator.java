@@ -49,7 +49,6 @@ class KerberosAuthenticator implements FlumeAuthenticator {
           .getLogger(KerberosAuthenticator.class);
 
   private volatile UserGroupInformation ugi;
-  private volatile KerberosUser prevUser;
   private volatile PrivilegedExecutor privilegedExecutor;
   private Map<String, PrivilegedExecutor> proxyCache = new HashMap<String, PrivilegedExecutor>();
 
@@ -129,11 +128,10 @@ class KerberosAuthenticator implements FlumeAuthenticator {
     // since we don't have to be unnecessarily protective if they switch all
     // HDFS sinks to use a different principal all at once.
 
-    KerberosUser newUser = new KerberosUser(resolvedPrincipal, keytab);
-    Preconditions.checkState(prevUser == null || prevUser.equals(newUser),
+    Preconditions.checkState(ugi == null || ugi.getUserName().equals(resolvedPrincipal),
       "Cannot use multiple kerberos principals in the same agent. " +
       " Must restart agent to use new principal or keytab. " +
-      "Previous = %s, New = %s", prevUser, newUser);
+      "Previous = %s, New = %s", ugi, resolvedPrincipal);
 
 
     // enable the kerberos mode of UGI, before doing anything else
@@ -175,7 +173,6 @@ class KerberosAuthenticator implements FlumeAuthenticator {
                 "file ({})", new Object[] { resolvedPrincipal, keytab } );
         UserGroupInformation.loginUserFromKeytab(resolvedPrincipal, keytab);
         this.ugi = UserGroupInformation.getLoginUser();
-        this.prevUser = new KerberosUser(resolvedPrincipal, keytab);
         this.privilegedExecutor = new UGIExecutor(this.ugi);
       }
     } catch (IOException e) {

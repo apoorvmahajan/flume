@@ -103,15 +103,7 @@ public enum SourceType {
    *
    * @see org.apache.flume.source.jms.JMSSource
    */
-  JMS("org.apache.flume.source.jms.JMSSource"),
-
-  /**
-   * Taildir Source
-   *
-   * @see org.apache.flume.source.taildir.TaildirSource
-   */
-  TAILDIR("org.apache.flume.source.taildir.TaildirSource")
-  ;
+  JMS("org.apache.flume.source.jms.JMSSource");
 
   private final String sourceClassName;
 

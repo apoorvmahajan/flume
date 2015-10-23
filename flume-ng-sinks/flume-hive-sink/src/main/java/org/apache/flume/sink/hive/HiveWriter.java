@@ -88,7 +88,6 @@ class HiveWriter {
       this.serializer = serializer;
       this.recordWriter = serializer.createRecordWriter(endPoint);
       this.txnBatch = nextTxnBatch(recordWriter);
-      this.txnBatch.beginNextTransaction();
       this.closed = false;
       this.lastUsed = System.currentTimeMillis();
     } catch (InterruptedException e) {
@@ -116,10 +115,6 @@ class HiveWriter {
 
   void setHearbeatNeeded() {
     hearbeatNeeded = true;
-  }
-
-  public int getRemainingTxns() {
-    return txnBatch.remainingTransactions();
   }
 
 
@@ -216,8 +211,8 @@ class HiveWriter {
   }
 
   /**
-   * Aborts the current Txn
-   * @throws InterruptedException
+   * Aborts the current Txn and switches to next Txn.
+   * @throws StreamingException if could not get new Transaction Batch, or switch to next Txn
    */
   public void abort()  throws InterruptedException {
     batch.clear();
@@ -253,64 +248,9 @@ class HiveWriter {
    */
   public void close() throws InterruptedException {
     batch.clear();
-    abortRemainingTxns();
     closeTxnBatch();
     closeConnection();
     closed = true;
-  }
-
-
-  private void abortRemainingTxns() throws InterruptedException {
-      try {
-        if ( !isClosed(txnBatch.getCurrentTransactionState()) ) {
-          abortCurrTxnHelper();
-        }
-
-        // recursively abort remaining txns
-        if(txnBatch.remainingTransactions()>0) {
-          timedCall(
-                  new CallRunner1<Void>() {
-                    @Override
-                    public Void call() throws StreamingException, InterruptedException {
-                      txnBatch.beginNextTransaction();
-                      return null;
-                    }
-                  });
-          abortRemainingTxns();
-        }
-      } catch (StreamingException e) {
-        LOG.warn("Error when aborting remaining transactions in batch " + txnBatch, e);
-        return;
-      } catch (TimeoutException e) {
-        LOG.warn("Timed out when aborting remaining transactions in batch " + txnBatch, e);
-        return;
-      }
-  }
-
-  private void abortCurrTxnHelper() throws TimeoutException, InterruptedException {
-    try {
-      timedCall(
-              new CallRunner1<Void>() {
-                @Override
-                public Void call() throws StreamingException, InterruptedException {
-                  txnBatch.abort();
-                  LOG.info("Aborted txn " + txnBatch.getCurrentTxnId());
-                  return null;
-                }
-              }
-      );
-    } catch (StreamingException e) {
-      LOG.warn("Unable to abort transaction " + txnBatch.getCurrentTxnId(), e);
-      // continue to attempt to abort other txns in the batch
-    }
-  }
-
-  private boolean isClosed(TransactionBatch.TxnState txnState) {
-    if(txnState == TransactionBatch.TxnState.COMMITTED)
-      return true;
-    if(txnState == TransactionBatch.TxnState.ABORTED)
-      return true;
-    return false;
   }
 
   public void closeConnection() throws InterruptedException {
@@ -392,7 +332,8 @@ class HiveWriter {
           return connection.fetchTransactionBatch(txnsPerBatch, recordWriter); // could block
         }
       });
-      LOG.info("Acquired Transaction batch {}", batch);
+      LOG.info("Acquired Txn Batch {}. Switching to first txn", batch);
+      batch.beginNextTransaction();
     } catch (Exception e) {
       throw new TxnBatchException(endPoint, e);
     }
@@ -401,7 +342,7 @@ class HiveWriter {
 
   private void closeTxnBatch() throws InterruptedException {
     try {
-      LOG.info("Closing Txn Batch {}.", txnBatch);
+      LOG.debug("Closing Txn Batch {}", txnBatch);
       timedCall(new CallRunner1<Void>() {
         @Override
         public Void call() throws InterruptedException, StreamingException {

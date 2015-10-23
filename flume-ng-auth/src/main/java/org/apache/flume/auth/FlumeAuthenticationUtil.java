@@ -17,7 +17,6 @@
  */
 package org.apache.flume.auth;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import org.apache.hadoop.security.SaslRpcServer;
 import org.apache.hadoop.security.SecurityUtil;
@@ -90,11 +89,6 @@ public class FlumeAuthenticationUtil {
   public static String[] splitKerberosName(String principal) throws IOException {
     String resolvedPrinc = SecurityUtil.getServerPrincipal(principal, "");
     return SaslRpcServer.splitKerberosName(resolvedPrinc);
-  }
-
-  @VisibleForTesting
-  static void clearCredentials() {
-    kerbAuthenticator = null;
   }
 }
 

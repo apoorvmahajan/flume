@@ -24,7 +24,7 @@
   <parent>
     <artifactId>flume-parent</artifactId>
     <groupId>org.apache.flume</groupId>
-    <version>1.7.0-SNAPSHOT</version>
+    <version>1.6.0</version>
   </parent>
 
   <artifactId>flume-ng-dist</artifactId>
@@ -84,7 +84,7 @@
       </dependencies>
     </profile>
     <profile>
-      <id>hbase-1</id>
+      <id>hbase-98</id>
       <activation>
         <property>
           <name>!flume.hadoop.profile</name>
@@ -187,10 +187,6 @@
     <dependency>
       <groupId>org.apache.flume.flume-ng-legacy-sources</groupId>
       <artifactId>flume-thrift-source</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.flume.flume-ng-sources</groupId>
-      <artifactId>flume-taildir-source</artifactId>
     </dependency>
     <dependency>
       <groupId>org.apache.flume.flume-ng-clients</groupId>

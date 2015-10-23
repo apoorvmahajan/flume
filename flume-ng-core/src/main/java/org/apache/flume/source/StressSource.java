@@ -28,7 +28,7 @@ import org.apache.flume.Context;
 import org.apache.flume.CounterGroup;
 import org.apache.flume.Event;
 import org.apache.flume.EventDeliveryException;
-import org.apache.flume.FlumeException;
+import org.apache.flume.PollableSource;
 import org.apache.flume.conf.Configurable;
 import org.apache.flume.event.EventBuilder;
 import org.slf4j.Logger;
@@ -53,8 +53,8 @@ import org.slf4j.LoggerFactory;
  *
  * See {@link StressSource#configure(Context)} for configuration options.
  */
-public class StressSource extends AbstractPollableSource implements
-  Configurable {
+public class StressSource extends AbstractSource implements
+  Configurable, PollableSource {
 
   private static final Logger logger = LoggerFactory
       .getLogger(StressSource.class);
@@ -81,7 +81,7 @@ public class StressSource extends AbstractPollableSource implements
    * <li>-batchSize = type int that defines the number of Events being sent in one batch
    */
   @Override
-  protected void doConfigure(Context context) throws FlumeException {
+  public void configure(Context context) {
     /* Limit on the total number of events. */
     maxTotalEvents = context.getLong("maxTotalEvents", -1L);
     /* Limit on the total number of successful events. */
@@ -113,13 +113,13 @@ public class StressSource extends AbstractPollableSource implements
   }
 
   @Override
-  protected Status doProcess() throws EventDeliveryException {
+  public Status process() throws EventDeliveryException {
     long totalEventSent = counterGroup.addAndGet("events.total", lastSent);
 
     if ((maxTotalEvents >= 0 &&
-            totalEventSent >= maxTotalEvents) ||
-            (maxSuccessfulEvents >= 0 &&
-                    counterGroup.get("events.successful") >= maxSuccessfulEvents)) {
+        totalEventSent >= maxTotalEvents) ||
+        (maxSuccessfulEvents >= 0 &&
+        counterGroup.get("events.successful") >= maxSuccessfulEvents)) {
       return Status.BACKOFF;
     }
     try {
@@ -148,12 +148,20 @@ public class StressSource extends AbstractPollableSource implements
   }
 
   @Override
-  protected void doStart() throws FlumeException {
-    logger.info("Stress source doStart finished");
+  public void start() {
+    logger.info("Stress source starting");
+
+    super.start();
+
+    logger.debug("Stress source started");
   }
 
   @Override
-  protected void doStop() throws FlumeException {
-    logger.info("Stress source do stop. Metrics:{}", counterGroup);
+  public void stop() {
+    logger.info("Stress source stopping");
+
+    super.stop();
+
+    logger.info("Stress source stopped. Metrics:{}", counterGroup);
   }
 }

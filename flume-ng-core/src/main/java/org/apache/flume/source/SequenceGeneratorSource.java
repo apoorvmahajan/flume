@@ -25,15 +25,15 @@ import org.apache.flume.ChannelException;
 import org.apache.flume.Context;
 import org.apache.flume.Event;
 import org.apache.flume.EventDeliveryException;
-import org.apache.flume.FlumeException;
+import org.apache.flume.PollableSource;
 import org.apache.flume.conf.Configurable;
 import org.apache.flume.event.EventBuilder;
 import org.apache.flume.instrumentation.SourceCounter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class SequenceGeneratorSource extends AbstractPollableSource implements
-        Configurable {
+public class SequenceGeneratorSource extends AbstractSource implements
+    PollableSource, Configurable {
 
   private static final Logger logger = LoggerFactory
       .getLogger(SequenceGeneratorSource.class);
@@ -54,7 +54,7 @@ public class SequenceGeneratorSource extends AbstractPollableSource implements
    * <li>batchSize = type int that defines the size of event batches
    */
   @Override
-  protected void doConfigure(Context context) throws FlumeException {
+  public void configure(Context context) {
     batchSize = context.getInteger("batchSize", 1);
     if (batchSize > 1) {
       batchArrayList = new ArrayList<Event>(batchSize);
@@ -66,14 +66,15 @@ public class SequenceGeneratorSource extends AbstractPollableSource implements
   }
 
   @Override
-  protected Status doProcess() throws EventDeliveryException {
+  public Status process() throws EventDeliveryException {
+
     Status status = Status.READY;
     int i = 0;
     try {
       if (batchSize <= 1) {
         if(eventsSent < totalEvents) {
           getChannelProcessor().processEvent(
-                  EventBuilder.withBody(String.valueOf(sequence++).getBytes()));
+            EventBuilder.withBody(String.valueOf(sequence++).getBytes()));
           sourceCounter.incrementEventAcceptedCount();
           eventsSent++;
         } else {
@@ -84,7 +85,7 @@ public class SequenceGeneratorSource extends AbstractPollableSource implements
         for (i = 0; i < batchSize; i++) {
           if(eventsSent < totalEvents){
             batchArrayList.add(i, EventBuilder.withBody(String
-                    .valueOf(sequence++).getBytes()));
+              .valueOf(sequence++).getBytes()));
             eventsSent++;
           } else {
             status = Status.BACKOFF;
@@ -106,19 +107,22 @@ public class SequenceGeneratorSource extends AbstractPollableSource implements
   }
 
   @Override
-  protected void doStart() throws FlumeException {
-    logger.info("Sequence generator source do starting");
+  public void start() {
+    logger.info("Sequence generator source starting");
+
+    super.start();
     sourceCounter.start();
-    logger.debug("Sequence generator source do started");
+    logger.debug("Sequence generator source started");
   }
 
   @Override
-  protected void doStop() throws FlumeException {
-    logger.info("Sequence generator source do stopping");
+  public void stop() {
+    logger.info("Sequence generator source stopping");
 
+    super.stop();
     sourceCounter.stop();
 
-    logger.info("Sequence generator source do stopped. Metrics:{}",getName(), sourceCounter);
+    logger.info("Sequence generator source stopped. Metrics:{}",getName(), sourceCounter);
   }
 
 }

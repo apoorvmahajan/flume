@@ -15,7 +15,7 @@
 
 
 ======================================
-Flume 1.7.0-SNAPSHOT User Guide
+Flume 1.6.0 User Guide
 ======================================
 
 Introduction
@@ -994,7 +994,7 @@ trackerDir            .flumespool     Directory to store metadata related to pro
 consumeOrder          oldest          In which order files in the spooling directory will be consumed ``oldest``,
                                       ``youngest`` and ``random``. In case of ``oldest`` and ``youngest``, the last modified
                                       time of the files will be used to compare the files. In case of a tie, the file
-                                      with smallest lexicographical order will be consumed first. In case of ``random`` any
+                                      with smallest laxicographical order will be consumed first. In case of ``random`` any
                                       file will be picked randomly. When using ``oldest`` and ``youngest`` the whole
                                       directory will be scanned to pick the oldest/youngest file, which might be slow if there
                                       are a large number of files, while using ``random`` may cause old files to be consumed
@@ -1090,59 +1090,6 @@ Property Name               Default             Description
 deserializer.maxBlobLength  100000000           The maximum number of bytes to read and buffer for a given request
 ==========================  ==================  =======================================================================
 
-Taildir Source
-~~~~~~~~~~~~~~~~~~~~~~~~~
-.. note:: **This source is provided as a preview feature. It does not work on Windows.** This source requires Java version 1.7 or later.
-
-Watch the specified files, and tail them in nearly real-time once detected new lines appended to the each files.
-If the new lines are being written, this source will retry reading them in wait for the completion of the write.
-
-This source is reliable and will not miss data even when the tailing files rotate.
-It periodically writes the last read position of each files on the given position file in JSON format.
-If Flume is stopped or down for some reason, it can restart tailing from the position written on the existing position file.
-
-In other use case, this source can also start tailing from the arbitrary position for each files using the given position file.
-When there is no position file on the specified path, it will start tailing from the first line of each files by default.
-
-Files will be consumed in order of their modification time. File with the oldest modification time will be consumed first.
-
-This source does not rename or delete or do any modifications to the file being tailed.
-Currently this source does not support tailing binary files. It reads text files line by line.
-
-=================================== ============================== ===================================================
-Property Name                       Default                        Description
-=================================== ============================== ===================================================
-**channels**                        --
-**type**                            --                             The component type name, needs to be ``TAILDIR``.
-**filegroups**                      --                             Space-separated list of file groups. Each file group indicates a set of files to be tailed.
-**filegroups.<filegroupName>**      --                             Absolute path of the file group. Regular expression (and not file system patterns) can be used for filename only.
-positionFile                        ~/.flume/taildir_position.json File in JSON format to record the inode, the absolute path and the last position of each tailing file.
-headers.<filegroupName>.<headerKey> --                             Header value which is the set with header key. Multiple headers can be specified for one file group.
-byteOffsetHeader                    false                          Whether to add the byte offset of a tailed line to a header called 'byteoffset'.
-skipToEnd                           false                          Whether to skip the position to EOF in the case of files not written on the position file.
-idleTimeout                         120000                         Time (ms) to close inactive files. If the closed file is appended new lines to, this source will automatically re-open it.
-writePosInterval                    3000                           Interval time (ms) to write the last position of each file on the position file.
-batchSize                           100                            Max number of lines to read and send to the channel at a time. Using the default is usually fine.
-backoffSleepIncrement               1000                           The increment for time delay before reattempting to poll for new data, when the last attempt did not find any new data.
-maxBackoffSleep                     5000                           The max time delay between each reattempt to poll for new data, when the last attempt did not find any new data.
-=================================== ============================== ===================================================
-
-Example for agent named a1:
-
-.. code-block:: properties
-
-  a1.sources = r1
-  a1.channels = c1
-  a1.sources.r1.type = TAILDIR
-  a1.sources.r1.channels = c1
-  a1.sources.r1.positionFile = /var/log/flume/taildir_position.json
-  a1.sources.r1.filegroups = f1 f2
-  a1.sources.r1.filegroups.f1 = /var/log/test1/example.log
-  a1.sources.r1.headers.f1.headerKey1 = value1
-  a1.sources.r1.filegroups.f2 = /var/log/test2/.*log.*
-  a1.sources.r1.headers.f2.headerKey1 = value2
-  a1.sources.r1.headers.f2.headerKey2 = value2-2
-
 Twitter 1% firehose Source (experimental)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -1205,13 +1152,6 @@ Property Name                    Default      Description
 batchSize                        1000         Maximum number of messages written to Channel in one batch
 batchDurationMillis              1000         Maximum time (in ms) before a batch will be written to Channel
                                               The batch will be written whenever the first of size and time will be reached.
-backoffSleepIncrement            1000         Initial and incremental wait time that is triggered when a Kafka Topic appears to be empty.
-                                              Wait period will reduce aggressive pinging of an empty Kafka Topic.  One second is ideal for
-                                              ingestion use cases but a lower value may be required for low latency operations with
-                                              interceptors.
-maxBackoffSleep                  5000         Maximum wait time that is triggered when a Kafka Topic appears to be empty.  Five seconds is
-                                              ideal for ingestion use cases but a lower value may be required for low latency operations
-                                              with interceptors.
 Other Kafka Consumer Properties  --           These properties are used to configure the Kafka Consumer. Any producer property supported
                                               by Kafka can be used. The only requirement is to prepend the property name with the prefix ``kafka.``.
                                               For example: kafka.consumer.timeout.ms
@@ -2012,7 +1952,7 @@ trust-all-certs              false                                              
 truststore                   --                                                     The path to a custom Java truststore file. Flume uses the certificate authority information in this file to determine whether the remote Avro Source's SSL authentication credentials should be trusted. If not specified, the default Java JSSE certificate authority files (typically "jssecacerts" or "cacerts" in the Oracle JRE) will be used.
 truststore-password          --                                                     The password for the specified truststore.
 truststore-type              JKS                                                    The type of the Java truststore. This can be "JKS" or other supported Java truststore type.
-exclude-protocols            SSLv3                                                  Space-separated list of SSL/TLS protocols to exclude. SSLv3 will always be excluded in addition to the protocols specified.
+exclude-protocols            SSLv2Hello SSLv3                                       Space-separated list of SSL/TLS protocols to exclude
 maxIoWorkers                 2 * the number of available processors in the machine  The maximum number of I/O worker threads. This is configured on the NettyAvroRpcClient NioClientSocketChannelFactory.
 ==========================   =====================================================  ===========================================================================================
 
@@ -2301,20 +2241,17 @@ The type is the FQCN: org.apache.flume.sink.solr.morphline.MorphlineSolrSink
 
 Required properties are in **bold**.
 
-===============================   =======================================================================  ========================
-Property Name                     Default                                                                  Description
-===============================   =======================================================================  ========================
-**channel**                       --
-**type**                          --                                                                       The component type name, needs to be ``org.apache.flume.sink.solr.morphline.MorphlineSolrSink``
-**morphlineFile**                 --                                                                       The relative or absolute path on the local file system to the morphline configuration file. Example: ``/etc/flume-ng/conf/morphline.conf``
-morphlineId                       null                                                                     Optional name used to identify a morphline if there are multiple morphlines in a morphline config file
-batchSize                         1000                                                                     The maximum number of events to take per flume transaction.
-batchDurationMillis               1000                                                                     The maximum duration per flume transaction (ms). The transaction commits after this duration or when batchSize is exceeded, whichever comes first.
-handlerClass                      org.apache.flume.sink.solr.morphline.MorphlineHandlerImpl                The FQCN of a class implementing org.apache.flume.sink.solr.morphline.MorphlineHandler
-isProductionMode                  false                                                                    This flag should be enabled for mission critical, large-scale online production systems that need to make progress without downtime when unrecoverable exceptions occur. Corrupt or malformed parser input data, parser bugs, and errors related to unknown Solr schema fields produce unrecoverable exceptions.
-recoverableExceptionClasses       org.apache.solr.client.solrj.SolrServerException                         Comma separated list of recoverable exceptions that tend to be transient, in which case the corresponding task can be retried. Examples include network connection errors, timeouts, etc. When the production mode flag is set to true, the recoverable exceptions configured using this parameter will not be ignored and hence will lead to retries.
-isIgnoringRecoverableExceptions   false                                                                    This flag should be enabled, if an unrecoverable exception is accidentally misclassified as recoverable. This enables the sink to make progress and avoid retrying an event forever.
-===============================   =======================================================================  ========================
+===================  =======================================================================  ========================
+Property Name        Default                                                                  Description
+===================  =======================================================================  ========================
+**channel**          --
+**type**             --                                                                       The component type name, needs to be ``org.apache.flume.sink.solr.morphline.MorphlineSolrSink``
+**morphlineFile**    --                                                                       The relative or absolute path on the local file system to the morphline configuration file. Example: ``/etc/flume-ng/conf/morphline.conf``
+morphlineId          null                                                                     Optional name used to identify a morphline if there are multiple morphlines in a morphline config file
+batchSize            1000                                                                     The maximum number of events to take per flume transaction.
+batchDurationMillis  1000                                                                     The maximum duration per flume transaction (ms). The transaction commits after this duration or when batchSize is exceeded, whichever comes first.
+handlerClass         org.apache.flume.sink.solr.morphline.MorphlineHandlerImpl                The FQCN of a class implementing org.apache.flume.sink.solr.morphline.MorphlineHandler
+===================  =======================================================================  ========================
 
 Example for agent named a1:
 
@@ -3483,7 +3420,7 @@ Log4J Appender
 
 Appends Log4j events to a flume agent's avro source. A client using this
 appender must have the flume-ng-sdk in the classpath (eg,
-flume-ng-sdk-1.7.0-SNAPSHOT.jar).
+flume-ng-sdk-1.6.0.jar).
 Required properties are in **bold**.
 
 =====================  =======  ==================================================================================
@@ -3547,7 +3484,7 @@ Load Balancing Log4J Appender
 
 Appends Log4j events to a list of flume agent's avro source. A client using this
 appender must have the flume-ng-sdk in the classpath (eg,
-flume-ng-sdk-1.7.0-SNAPSHOT.jar). This appender supports a round-robin and random
+flume-ng-sdk-1.6.0.jar). This appender supports a round-robin and random
 scheme for performing the load balancing. It also supports a configurable backoff
 timeout so that down agents are removed temporarily from the set of hosts
 Required properties are in **bold**.
@@ -3801,7 +3738,7 @@ The tools can be run as follows::
 
   $bin/flume-ng tool --conf ./conf FCINTEGRITYTOOL -l ./datadir
 
-where datadir is the comma separated list of data directory to be verified.
+where datadir the comma separated list of data directory to ve verified.
 
 Following are the options available
 
@@ -3812,67 +3749,7 @@ h/help                   Displays help
 **l/dataDirs**           Comma-separated list of data directories which the tool must verify
 =======================  ====================================================================
 
-Event Validator Tool
---------------------
 
-Event validator tool can be used to validate the File Channel Event's in application specific way.
-The tool applies the user provider validation login on each event and drop the event which do not
-confirm to the logic.
-
-The tools can be run as follows::
-
-  $bin/flume-ng tool --conf ./conf FCINTEGRITYTOOL -l ./datadir -e org.apache.flume.MyEventValidator -DmaxSize 2000
-
-where datadir is the comma separated list of data directory to be verified.
-
-Following are the options available
-
-=======================  ====================================================================
-Option Name              Description
-=======================  ====================================================================
-h/help                   Displays help
-**l/dataDirs**           Comma-separated list of data directories which the tool must verify
-e/eventValidator         Fully Qualified Name of Event Validator Implementation. The jar must
-                         be on Flume classpath
-=======================  ====================================================================
-
-The Event validator implementation must implement EventValidator interface. It's recommended
-not to throw any exception from the implementation as they are treated as invalid events.
-Additional parameters can be passed to EventValitor implementation via -D options.
-
-Let's see an example of simple size based Event Validator, which shall reject event's larger
-than maximum size specified.
-
-.. code-block:: java
-
-  public static class MyEventValidator implements EventValidator {
-
-    private int value = 0;
-
-    private MyEventValidator(int val) {
-      value = val;
-    }
-
-    @Override
-    public boolean validateEvent(Event event) {
-      return event.getBody() <= value;
-    }
-
-    public static class Builder implements EventValidator.Builder {
-
-      private int sizeValidator = 0;
-
-      @Override
-      public EventValidator build() {
-        return new DummyEventVerifier(sizeValidator);
-      }
-
-      @Override
-      public void configure(Context context) {
-        binaryValidator = context.getInteger("maxSize");
-      }
-    }
-  }
 
 
 Topology Design Considerations

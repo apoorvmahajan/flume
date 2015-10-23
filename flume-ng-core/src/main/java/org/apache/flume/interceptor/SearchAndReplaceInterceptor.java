@@ -105,11 +105,9 @@ public class SearchAndReplaceInterceptor implements Interceptor {
           " (may not be empty)");
 
       replaceString = context.getString(REPLACE_STRING_KEY);
-      // Empty replacement String value or if the property itself is not present
-      // assign empty string as replacement
-      if(replaceString == null) {
-        replaceString = "";
-      }
+      Preconditions.checkNotNull(replaceString,
+          "Must supply a replacement string " + REPLACE_STRING_KEY +
+          " (empty is ok)");
 
       searchRegex = Pattern.compile(searchPattern);
 

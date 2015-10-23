@@ -113,7 +113,6 @@ public class NetcatSource extends AbstractSource implements Configurable,
   private int port;
   private int maxLineLength;
   private boolean ackEveryEvent;
-  private String sourceEncoding;
 
   private CounterGroup counterGroup;
   private ServerSocketChannel serverSocket;
@@ -143,10 +142,6 @@ public class NetcatSource extends AbstractSource implements Configurable,
     maxLineLength = context.getInteger(
         NetcatSourceConfigurationConstants.CONFIG_MAX_LINE_LENGTH,
         NetcatSourceConfigurationConstants.DEFAULT_MAX_LINE_LENGTH);
-    sourceEncoding = context.getString(
-        NetcatSourceConfigurationConstants.CONFIG_SOURCE_ENCODING,
-        NetcatSourceConfigurationConstants.DEFAULT_ENCODING
-    );
   }
 
   @Override
@@ -181,7 +176,6 @@ public class NetcatSource extends AbstractSource implements Configurable,
     acceptRunnable.ackEveryEvent = ackEveryEvent;
     acceptRunnable.source = this;
     acceptRunnable.serverSocket = serverSocket;
-    acceptRunnable.sourceEncoding = sourceEncoding;
 
     acceptThread = new Thread(acceptRunnable);
 
@@ -257,7 +251,6 @@ public class NetcatSource extends AbstractSource implements Configurable,
     private EventDrivenSource source;
     private AtomicBoolean shouldStop;
     private boolean ackEveryEvent;
-    private String sourceEncoding;
 
     private final int maxLineLength;
 
@@ -279,7 +272,6 @@ public class NetcatSource extends AbstractSource implements Configurable,
           request.counterGroup = counterGroup;
           request.source = source;
           request.ackEveryEvent = ackEveryEvent;
-          request.sourceEncoding = sourceEncoding;
 
           handlerService.submit(request);
 
@@ -302,7 +294,6 @@ public class NetcatSource extends AbstractSource implements Configurable,
     private CounterGroup counterGroup;
     private SocketChannel socketChannel;
     private boolean ackEveryEvent;
-    private String sourceEncoding;
 
     private final int maxLineLength;
 
@@ -316,8 +307,8 @@ public class NetcatSource extends AbstractSource implements Configurable,
       Event event = null;
 
       try {
-        Reader reader = Channels.newReader(socketChannel, sourceEncoding);
-        Writer writer = Channels.newWriter(socketChannel, sourceEncoding);
+        Reader reader = Channels.newReader(socketChannel, "utf-8");
+        Writer writer = Channels.newWriter(socketChannel, "utf-8");
         CharBuffer buffer = CharBuffer.allocate(maxLineLength);
         buffer.flip(); // flip() so fill() sees buffer as initially empty
 
